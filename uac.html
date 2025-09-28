@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate App Creator</title>
+    
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-language_tools.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            overflow: hidden;
+            font-size: 14px;
+        }
+        
+        .container {
+            display: flex;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        /* Mobile-first responsive design for Xiaomi Redmi Note 12 Pro */
+        @media (max-width: 1080px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: 150px;
+                order: 2;
+                display: flex;
+                overflow-x: auto;
+                overflow-y: hidden;
+                padding: 10px;
+            }
+            
+            .main-area {
+                order: 1;
+                flex: 1;
+            }
+            
+            .workspace {
+                flex-direction: column;
+            }
+            
+            .properties-panel {
+                width: 100%;
+                height: 200px;
+                order: 3;
+                padding: 10px;
+            }
+        }
+        
+        .sidebar {
+            width: 280px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 15px;
+            overflow-y: auto;
+            border-right: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .toolbar {
+            height: 50px;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            gap: 8px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        
+        @media (max-width: 1080px) {
+            .toolbar {
+                height: 45px;
+                padding: 0 5px;
+                gap: 5px;
+            }
+        }
+        
+        .workspace {
+            flex: 1;
+            display: flex;
+        }
+        
+        .canvas-area {
+            flex: 1;
+            background: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .properties-panel {
+            width: 320px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 15px;
+            overflow-y: auto;
+            border-left: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        @media (max-width: 1080px) {
+            .properties-panel {
+                width: 100%;
+                height: 180px;
+                padding: 10px;
+            }
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            margin: 3px;
+            font-size: 12px;
+            white-space: nowrap;
+            min-width: auto;
+        }
+        
+        @media (max-width: 1080px) {
+            .btn {
+                padding: 6px 10px;
+                font-size: 11px;
+                margin: 2px;
+            }
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .component {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 8px;
+            cursor: grab;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            font-size: 12px;
+            text-align: center;
+        }
+        
+        @media (max-width: 1080px) {
+            .component {
+                padding: 6px;
+                margin: 3px;
+                font-size: 11px;
+                min-height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+        
+        .component:hover {
+            border-color: #4ECDC4;
+            transform: scale(1.02);
+        }
+        
+        .component:active {
+            cursor: grabbing;
+        }
+        
+        .tab-container {
+            display: flex;
+            background: rgba(0, 0, 0, 0.5);
+        }
+        
+        .tab {
+            padding: 10px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+            font-size: 12px;
+        }
+        
+        @media (max-width: 1080px) {
+            .tab {
+                padding: 8px 12px;
+                font-size: 11px;
+                min-width: 70px;
+            }
+        }
+        
+        .tab.active {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .tab-content {
+            display: none;
+            height: 100%;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .code-editor {
+            height: 300px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        
+        @media (max-width: 1080px) {
+            .code-editor {
+                height: 250px;
+            }
+        }
+        
+        .preview-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+        
+        .game-canvas {
+            border: 2px solid #333;
+            display: block;
+            margin: 10px auto;
+            max-width: 100%;
+            height: auto;
+        }
+        
+        @media (max-width: 1080px) {
+            .game-canvas {
+                width: 90%;
+                height: auto;
+                margin: 5px auto;
+            }
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 80%;
+            max-height: 80%;
+            overflow: auto;
+        }
+        
+        .component-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 8px;
+            margin: 8px 0;
+        }
+        
+        @media (max-width: 1080px) {
+            .component-grid {
+                grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+                gap: 5px;
+                margin: 5px 0;
+            }
+        }
+        
+        .template-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            font-size: 12px;
+        }
+        
+        @media (max-width: 1080px) {
+            .template-card {
+                padding: 10px;
+                font-size: 11px;
+                min-height: 80px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+            
+            .template-card h3 {
+                font-size: 13px;
+                margin-bottom: 5px;
+            }
+            
+            .template-card p {
+                font-size: 10px;
+                margin: 0;
+            }
+        }
+        
+        .template-card:hover {
+            transform: scale(1.05);
+        }
+        
+        .property-group {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 8px;
+        }
+        
+        .property-group h3 {
+            margin-bottom: 10px;
+            color: #4ECDC4;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 1080px) {
+            .property-group {
+                padding: 8px;
+                margin: 5px 0;
+            }
+            
+            .property-group h3 {
+                font-size: 12px;
+                margin-bottom: 8px;
+            }
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 6px;
+            margin: 3px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 12px;
+        }
+        
+        @media (max-width: 1080px) {
+            .form-control {
+                padding: 5px;
+                margin: 2px 0;
+                font-size: 11px;
+            }
+        }
+        
+        .color-picker {
+            width: 50px;
+            height: 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress {
+            height: 100%;
+            background: linear-gradient(90deg, #4ECDC4, #44A08D);
+            transition: width 0.3s ease;
+        }
+        
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4ECDC4;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 25px;
+            z-index: 2000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+        
+        .toast.show {
+            transform: translateX(0);
+        }
+        
+        .floating-menu {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 10px;
+            border-radius: 10px;
+            display: none;
+            z-index: 100;
+        }
+        
+        .layer-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+        
+        .layer-item.active {
+            background: rgba(76, 205, 196, 0.3);
+        }
+        
+        .animation-timeline {
+            background: rgba(255, 255, 255, 0.1);
+            height: 100px;
+            border-radius: 10px;
+            margin: 10px 0;
+            position: relative;
+            overflow-x: auto;
+        }
+        
+        .keyframe {
+            position: absolute;
+            width: 10px;
+            height: 20px;
+            background: #FF6B6B;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <h2 style="font-size: 16px; margin-bottom: 15px;">🚀 Ultimate App Creator</h2>
+            
+            <div class="tab-container" style="flex-direction: column;">
+                <button class="tab active" onclick="switchTab('components')">📦 Komponenten</button>
+                <button class="tab" onclick="switchTab('templates')">📋 Templates</button>
+                <button class="tab" onclick="switchTab('assets')">🎨 Assets</button>
+                <button class="tab" onclick="switchTab('layers')">📚 Layer</button>
+            </div>
+            
+            <!-- Components Tab -->
+            <div id="components-tab" class="tab-content active">
+                <h3 style="font-size: 13px;">UI Komponenten</h3>
+                <div class="component-grid">
+                    <div class="component" draggable="true" data-type="button">🔘 Button</div>
+                    <div class="component" draggable="true" data-type="text">📝 Text</div>
+                    <div class="component" draggable="true" data-type="input">⌨️ Input</div>
+                    <div class="component" draggable="true" data-type="image">🖼️ Bild</div>
+                    <div class="component" draggable="true" data-type="container">📦 Box</div>
+                    <div class="component" draggable="true" data-type="list">📋 Liste</div>
+                </div>
+                
+                <h3 style="font-size: 13px;">Game Komponenten</h3>
+                <div class="component-grid">
+                    <div class="component" draggable="true" data-type="sprite">👾 Sprite</div>
+                    <div class="component" draggable="true" data-type="platform">🟫 Platform</div>
+                    <div class="component" draggable="true" data-type="enemy">👹 Gegner</div>
+                    <div class="component" draggable="true" data-type="collectible">💎 Item</div>
+                    <div class="component" draggable="true" data-type="particle">✨ Partikel</div>
+                    <div class="component" draggable="true" data-type="sound">🔊 Sound</div>
+                </div>
+                
+                <h3 style="font-size: 13px;">Advanced</h3>
+                <div class="component-grid">
+                    <div class="component" draggable="true" data-type="chart">📊 Chart</div>
+                    <div class="component" draggable="true" data-type="map">🗺️ Karte</div>
+                    <div class="component" draggable="true" data-type="video">🎥 Video</div>
+                    <div class="component" draggable="true" data-type="3d">🎲 3D</div>
+                </div>
+            </div>
+            
+            <!-- Templates Tab -->
+            <div id="templates-tab" class="tab-content">
+                <div class="template-card" onclick="loadTemplate('business')">
+                    <h3>📊 Business App</h3>
+                    <p>Dashboard, Charts, Formulare</p>
+                </div>
+                <div class="template-card" onclick="loadTemplate('game')">
+                    <h3>🎮 2D Game</h3>
+                    <p>Platform Game Template</p>
+                </div>
+                <div class="template-card" onclick="loadTemplate('social')">
+                    <h3>📱 Social App</h3>
+                    <p>Chat, Profile, Feed</p>
+                </div>
+                <div class="template-card" onclick="loadTemplate('ecommerce')">
+                    <h3>🛒 E-Commerce</h3>
+                    <p>Shop, Warenkorb, Checkout</p>
+                </div>
+                <div class="template-card" onclick="loadTemplate('portfolio')">
+                    <h3>💼 Portfolio</h3>
+                    <p>Moderne Portfolio Seite</p>
+                </div>
+            </div>
+            
+            <!-- Assets Tab -->
+            <div id="assets-tab" class="tab-content">
+                <h3>Asset Management</h3>
+                <button class="btn" onclick="uploadAsset()">📁 Upload Asset</button>
+                <div id="asset-list"></div>
+                
+                <h3>Icon Library</h3>
+                <div class="component-grid" id="icon-library">
+                    <!-- Icons werden dynamisch geladen -->
+                </div>
+                
+                <h3>Sound Library</h3>
+                <div id="sound-library">
+                    <div class="component" onclick="playSound('click')">🔊 Click</div>
+                    <div class="component" onclick="playSound('success')">✅ Success</div>
+                    <div class="component" onclick="playSound('error')">❌ Error</div>
+                </div>
+            </div>
+            
+            <!-- Layers Tab -->
+            <div id="layers-tab" class="tab-content">
+                <h3>Layer Management</h3>
+                <div id="layer-list">
+                    <div class="layer-item active" data-layer="0">
+                        <span>📄 Layer 1</span>
+                        <button onclick="toggleLayer(0)">👁️</button>
+                    </div>
+                </div>
+                <button class="btn" onclick="addLayer()">➕ New Layer</button>
+            </div>
+        </div>
+        
+        <!-- Main Area -->
+        <div class="main-area">
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <button class="btn" onclick="switchMode('design')">🎨 Design</button>
+                <button class="btn" onclick="switchMode('code')">💻 Code</button>
+                <button class="btn" onclick="switchMode('preview')">👀 Preview</button>
+                <button class="btn" onclick="switchMode('game')">🎮 Game</button>
+                
+                <div style="margin-left: auto; display: flex; gap: 10px;">
+                    <button class="btn" onclick="undoAction()">↶ Undo</button>
+                    <button class="btn" onclick="redoAction()">↷ Redo</button>
+                    <button class="btn" onclick="saveProject()">💾 Save</button>
+                    <button class="btn" onclick="exportApp()">📤 Export</button>
+                    <button class="btn" onclick="deployApp()">🚀 Deploy</button>
+                </div>
+            </div>
+            
+            <!-- Workspace -->
+            <div class="workspace">
+                <div class="canvas-area">
+                    <!-- Design Mode -->
+                    <div id="design-mode" class="tab-content active">
+                        <canvas id="design-canvas" style="width: 100%; height: 100%;"></canvas>
+                    </div>
+                    
+                    <!-- Code Mode -->
+                    <div id="code-mode" class="tab-content">
+                        <div class="tab-container">
+                            <button class="tab active" onclick="switchCodeTab('html')">HTML</button>
+                            <button class="tab" onclick="switchCodeTab('css')">CSS</button>
+                            <button class="tab" onclick="switchCodeTab('js')">JavaScript</button>
+                            <button class="tab" onclick="switchCodeTab('python')">Python</button>
+                            <button class="tab" onclick="switchCodeTab('json')">JSON</button>
+                        </div>
+                        <div id="html-editor" class="code-editor"></div>
+                        <div id="css-editor" class="code-editor" style="display: none;"></div>
+                        <div id="js-editor" class="code-editor" style="display: none;"></div>
+                        <div id="python-editor" class="code-editor" style="display: none;"></div>
+                        <div id="json-editor" class="code-editor" style="display: none;"></div>
+                    </div>
+                    
+                    <!-- Preview Mode -->
+                    <div id="preview-mode" class="tab-content">
+                        <iframe id="preview-frame" class="preview-frame"></iframe>
+                    </div>
+                    
+                    <!-- Game Mode -->
+                    <div id="game-mode" class="tab-content">
+                        <canvas id="game-canvas" width="800" height="600" class="game-canvas"></canvas>
+                        <div style="text-align: center; margin: 20px;">
+                            <button class="btn" onclick="startGame()">▶️ Start Game</button>
+                            <button class="btn" onclick="pauseGame()">⏸️ Pause</button>
+                            <button class="btn" onclick="resetGame()">🔄 Reset</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Properties Panel -->
+                <div class="properties-panel">
+                    <h3>Properties</h3>
+                    <div id="properties-content">
+                        <div class="property-group">
+                            <h3>Element Properties</h3>
+                            <label>Type:</label>
+                            <input type="text" id="prop-type" class="form-control" readonly>
+                            
+                            <label>ID:</label>
+                            <input type="text" id="prop-id" class="form-control">
+                            
+                            <label>Class:</label>
+                            <input type="text" id="prop-class" class="form-control">
+                        </div>
+                        
+                        <div class="property-group">
+                            <h3>Position & Size</h3>
+                            <label>X:</label>
+                            <input type="number" id="prop-x" class="form-control">
+                            
+                            <label>Y:</label>
+                            <input type="number" id="prop-y" class="form-control">
+                            
+                            <label>Width:</label>
+                            <input type="number" id="prop-width" class="form-control">
+                            
+                            <label>Height:</label>
+                            <input type="number" id="prop-height" class="form-control">
+                        </div>
+                        
+                        <div class="property-group">
+                            <h3>Styling</h3>
+                            <label>Background Color:</label>
+                            <input type="color" id="prop-bg-color" class="color-picker">
+                            
+                            <label>Text Color:</label>
+                            <input type="color" id="prop-text-color" class="color-picker">
+                            
+                            <label>Border Radius:</label>
+                            <input type="number" id="prop-border-radius" class="form-control">
+                            
+                            <label>Opacity:</label>
+                            <input type="range" id="prop-opacity" min="0" max="1" step="0.1" class="form-control">
+                        </div>
+                        
+                        <div class="property-group">
+                            <h3>Animation</h3>
+                            <label>Animation Type:</label>
+                            <select id="prop-animation" class="form-control">
+                                <option>None</option>
+                                <option>Fade In</option>
+                                <option>Slide In</option>
+                                <option>Bounce</option>
+                                <option>Rotate</option>
+                                <option>Scale</option>
+                            </select>
+                            
+                            <label>Duration (ms):</label>
+                            <input type="number" id="prop-duration" class="form-control" value="1000">
+                            
+                            <div class="animation-timeline">
+                                <div class="keyframe" style="left: 0;"></div>
+                                <div class="keyframe" style="left: 50%;"></div>
+                                <div class="keyframe" style="left: 100%;"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="property-group">
+                            <h3>Interactivity</h3>
+                            <label>On Click:</label>
+                            <select id="prop-onclick" class="form-control">
+                                <option>None</option>
+                                <option>Navigate</option>
+                                <option>Show Modal</option>
+                                <option>Play Sound</option>
+                                <option>Custom Function</option>
+                            </select>
+                            
+                            <label>Custom Code:</label>
+                            <textarea id="prop-custom-code" class="form-control" rows="4"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modals -->
+    <div id="export-modal" class="modal">
+        <div class="modal-content">
+            <h2>🚀 Export App</h2>
+            <div class="progress-bar">
+                <div class="progress" id="export-progress" style="width: 0;"></div>
+            </div>
+            <div style="margin: 20px 0;">
+                <label><input type="checkbox" checked> PWA Features</label><br>
+                <label><input type="checkbox" checked> Offline Support</label><br>
+                <label><input type="checkbox"> Push Notifications</label><br>
+                <label><input type="checkbox"> Background Sync</label><br>
+            </div>
+            <button class="btn" onclick="startExport()">📥 Download App</button>
+            <button class="btn" onclick="generatePWA()">📱 Generate PWA</button>
+            <button class="btn" onclick="closeModal('export-modal')">❌ Close</button>
+        </div>
+    </div>
+    
+    <div id="deploy-modal" class="modal">
+        <div class="modal-content">
+            <h2>🌐 Deploy App</h2>
+            <p>Deine App wird als PWA deployed und kann installiert werden.</p>
+            <input type="text" placeholder="App Name" class="form-control">
+            <input type="text" placeholder="App Description" class="form-control">
+            <input type="url" placeholder="App Icon URL" class="form-control">
+            <button class="btn" onclick="deployToPWA()">🚀 Deploy as PWA</button>
+            <button class="btn" onclick="generateQR()">📱 Generate QR Code</button>
+            <button class="btn" onclick="closeModal('deploy-modal')">❌ Close</button>
+        </div>
+    </div>
+    
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+    
+    <!-- Floating Context Menu -->
+    <div id="context-menu" class="floating-menu">
+        <div onclick="copyElement()">📋 Copy</div>
+        <div onclick="pasteElement()">📄 Paste</div>
+        <div onclick="deleteElement()">🗑️ Delete</div>
+        <div onclick="duplicateElement()">📑 Duplicate</div>
+    </div>
+
+    <script>
+        // Global Variables
+        let currentMode = 'design';
+        let selectedElement = null;
+        let projectData = {
+            elements: [],
+            styles: {},
+            scripts: {},
+            assets: [],
+            settings: {}
+        };
+        let undoStack = [];
+        let redoStack = [];
+        let canvas, ctx;
+        let gameEngine = null;
+        let codeEditors = {};
+        
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCanvas();
+            initializeCodeEditors();
+            setupEventListeners();
+            loadIconLibrary();
+            showToast('🚀 Ultimate App Creator geladen!');
+        });
+        
+        // Canvas Setup
+        function initializeCanvas() {
+            canvas = document.getElementById('design-canvas');
+            ctx = canvas.getContext('2d');
+            
+            // Set canvas size
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            // Canvas event listeners
+            canvas.addEventListener('click', handleCanvasClick);
+            canvas.addEventListener('contextmenu', handleCanvasRightClick);
+            canvas.addEventListener('mousemove', handleCanvasMouseMove);
+            
+            // Drag and drop
+            canvas.addEventListener('dragover', handleDragOver);
+            canvas.addEventListener('drop', handleDrop);
+            
+            drawGrid();
+        }
+        
+        // Code Editors Setup
+        function initializeCodeEditors() {
+            // HTML Editor
+            codeEditors.html = ace.edit('html-editor');
+            codeEditors.html.setTheme('ace/theme/monokai');
+            codeEditors.html.session.setMode('ace/mode/html');
+            codeEditors.html.setValue(`<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meine App</title>
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <div id="app">
+        <h1>Willkommen in meiner App!</h1>
+    </div>
+</body>
+</html>`);
+            
+            // CSS Editor
+            codeEditors.css = ace.edit('css-editor');
+            codeEditors.css.setTheme('ace/theme/monokai');
+            codeEditors.css.session.setMode('ace/mode/css');
+            codeEditors.css.setValue(`body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+#app {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+}`);
+            
+            // JavaScript Editor
+            codeEditors.js = ace.edit('js-editor');
+            codeEditors.js.setTheme('ace/theme/monokai');
+            codeEditors.js.session.setMode('ace/mode/javascript');
+            codeEditors.js.setValue(`// App Logic
+class MyApp {
+    constructor() {
+        this.init();
+    }
+    
+    init() {
+        console.log('App initialized!');
+        this.setupEventListeners();
+    }
+    
+    setupEventListeners() {
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM loaded');
+        });
+    }
+}
+
+// Start App
+const app = new MyApp();
+
+// Service Worker Registration for PWA
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+}`);
+            
+            // Python Editor (Pyodide)
+            codeEditors.python = ace.edit('python-editor');
+            codeEditors.python.setTheme('ace/theme/monokai');
+            codeEditors.python.session.setMode('ace/mode/python');
+            codeEditors.python.setValue(`# Python Code (runs in browser via Pyodide)
+import json
+import math
+
+class AppLogic:
+    def __init__(self):
+        self.data = []
+    
+    def process_data(self, input_data):
+        # Process data logic here
+        return [x * 2 for x in input_data]
+    
+    def calculate(self, formula):
+        return eval(formula)
+
+# Example usage
+app_logic = AppLogic()
+result = app_logic.process_data([1, 2, 3, 4, 5])
+print(f"Processed data: {result}")
+`);
+            
+            // JSON Editor
+            codeEditors.json = ace.edit('json-editor');
+            codeEditors.json.setTheme('ace/theme/monokai');
+            codeEditors.json.session.setMode('ace/mode/json');
+            codeEditors.json.setValue(`{
+    "name": "Meine App",
+    "short_name": "MyApp",
+    "description": "Eine großartige PWA erstellt mit Ultimate App Creator",
+    "version": "1.0.0",
+    "manifest_version": 2,
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#667eea",
+    "theme_color": "#764ba2",
+    "icons": [
+        {
+            "src": "icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}`);
+        }
+        
+        // Event Listeners Setup
+        function setupEventListeners() {
+            // Drag and drop for components
+            document.querySelectorAll('.component').forEach(component => {
+                component.addEventListener('dragstart', handleDragStart);
+            });
+            
+            // Property panel listeners
+            document.getElementById('prop-id').addEventListener('input', updateElementProperty);
+            document.getElementById('prop-class').addEventListener('input', updateElementProperty);
+            document.getElementById('prop-x').addEventListener('input', updateElementProperty);
+            document.getElementById('prop-y').addEventListener('input', updateElementProperty);
+            document.getElementById('prop-width').
