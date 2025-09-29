@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ultimate App Creator – ULTIMATIVE EDITION</title>
+  <link rel="icon" href="data:," />
+  <!-- Externe Libs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.14/ace.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.14/mode-html.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.14/mode-css.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.14/mode-javascript.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.14/ext-language_tools.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+  <style>
+    html,body{height:100%;margin:0;font-family:sans-serif;background:#f5f7fa;}
+    body{min-height:100vh;display:flex;flex-direction:column;}
+    .main-grid{flex:1 1 auto;display:grid;grid-template-columns:80px 1fr 330px;grid-template-rows:60px 1fr 0;min-height:0;min-width:0;height:100vh;}
+    header{grid-column:1/4;grid-row:1;background:linear-gradient(90deg,#4ecdc4,#667eea);color:#fff;display:flex;align-items:center;padding:0 1.5rem;box-shadow:0 2px 8px #d0e0f088;z-index:2;}
+    header h1{flex:1;font-size:1.3em;margin:0;}
+    .sidebar{grid-row:2;grid-column:1;background:#fff;border-right:2px solid #d0d0e0;display:flex;flex-direction:column;align-items:center;padding:9px 2px 0 2px;gap:13px;min-width:70px;box-shadow:0 1px 4px #0001;z-index:1;height:100%;}
+    .sidebar-btn{background:#f4f4fa;border:2px solid #d0d0e0;border-radius:15px;width:52px;height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:1.5em;color:#667eea;cursor:pointer;margin:0;transition:background 0.2s,border 0.2s;box-shadow:0 1px 4px #0001;outline:none;}
+    .sidebar-btn.active,.sidebar-btn:focus{background:#4ecdc4;color:#fff;border-color:#ff6b6b;}
+    .sidebar-btn span{font-size:0.51em;margin-top:2px;color:#3339;}
+    .workspace{grid-row:2;grid-column:2;background:#fff;display:flex;flex-direction:column;min-width:0;min-height:0;position:relative;z-index:0;}
+    .toolbar{padding:8px 15px;background:#f4f4fa;border-bottom:1.5px solid #d0d0e0;display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
+    .toolbar .action-btn{padding:7px 15px;font-size:1.01em;border-radius:11px;background:#4ecdc4;color:#fff;border:none;font-weight:bold;cursor:pointer;margin-right:2px;transition:background 0.2s,box-shadow 0.2s;box-shadow:0 2px 12px #4ecdc422;}
+    .toolbar .action-btn:active{background:#ff6b6b;}
+    .canvas-area{flex:1 1 auto;display:flex;align-items:center;justify-content:center;background:#fafdff;min-height:0;min-width:0;position:relative;overflow:auto;}
+    .canvas-board{width:95%;height:93%;min-width:230px;min-height:170px;background:#fff;border:2px dashed #667eea;border-radius:15px;position:relative;overflow:visible;box-shadow:0 2px 8px #d0e0f088;display:flex;align-items:flex-start;justify-content:flex-start;flex-wrap:wrap;}
+    .drop-hint{color:#bbb;position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);text-align:center;font-size:1.1em;pointer-events:none;user-select:none;z-index:0;}
+    .sidepanel{grid-row:2;grid-column:3;background:#f4f4fa;border-left:2px solid #d0d0e0;box-shadow:0 1px 4px #dde6fa44;padding:14px 10px 7px 10px;min-width:170px;overflow-y:auto;display:flex;flex-direction:column;gap:11px;z-index:1;height:100%;}
+    .prop-group label{display:block;font-size:1.01em;margin-bottom:2px;font-weight:500;color:#555;}
+    .prop-group input,.prop-group select,.prop-group textarea{width:100%;font-size:1.07em;margin-bottom:4px;padding:5px 5px;border:1.3px solid #d0d0e0;border-radius:6px;background:#f8fcfc;color:#222;resize:vertical;}
+    .comp-btn{background:#fff;border:2px solid #d0d0e0;border-radius:9px;width:54px;height:47px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:1.1em;color:#667eea;cursor:grab;user-select:none;font-weight:bold;transition:border 0.2s,background 0.2s;text-align:center;outline:none;}
+    .comp-btn:active,.comp-btn:focus{border-color:#4ecdc4;background:#e2fcfa;color:#ff6b6b;}
+    .comp-btn span{font-size:0.7em;color:#444a;margin-top:1px;}
+    .canvas-comp{box-shadow:0 2px 8px #0002;cursor:pointer;user-select:none;position:absolute;border:2px solid #fff0;transition:border 0.2s,box-shadow 0.2s,transform 0.15s;outline:none;min-width:55px;min-height:36px;padding:10px 20px;z-index:2;background-clip:padding-box;}
+    .canvas-comp.selected{border:2px solid #ff6b6b;box-shadow:0 4px 16px #ff6b6b55;transform:scale(1.03);}
+    .canvas-comp img{max-width:80px;max-height:60px;border-radius:6px;}
+    .delete-btn,.duplicate-btn{position:absolute;top:-10px;right:-12px;background:#fff;color:#ff6b6b;border:1.5px solid #ff6b6b;border-radius:50%;font-size:1em;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:4;font-weight:bold;}
+    .duplicate-btn{right:16px;color:#667eea;border-color:#667eea;}
+    .properties-panel{background:#fff;border-top:1.5px solid #d0d0e0;box-shadow:0 -1px 4px #dde6fa44;padding:13px 15px 7px 15px;min-width:0;min-height:0;display:flex;flex-direction:row;gap:22px;align-items:flex-start;position:absolute;left:10px;bottom:10px;border-radius:11px;z-index:10;transition:box-shadow 0.2s;width:85%;max-width:650px;margin:auto;opacity:0.97;}
+    .close-props{background:#eee;border:1.5px solid #ccc;border-radius:9px;font-size:1.2em;padding:3px 10px;cursor:pointer;color:#333;margin-left:18px;}
+    .close-props:hover{background:#ffd8d8;color:#ff6b6b;}
+    .invisible{display:none !important;}
+    /* Animationen */
+    @keyframes fadein{0%{opacity:0;transform:scale(0.7);}100%{opacity:1;transform:scale(1);}}
+    @keyframes shake {0%{transform:translateX(0);}10%{transform:translateX(-5px);}20%{transform:translateX(5px);}30%{transform:translateX(-5px);}40%{transform:translateX(5px);}50%{transform:translateX(-5px);}60%{transform:translateX(5px);}70%{transform:translateX(-5px);}80%{transform:translateX(5px);}90%{transform:translateX(-5px);}100%{transform:translateX(0);}}
+    @keyframes pulse {0%{transform:scale(1);}50%{transform:scale(1.11);}100%{transform:scale(1);}}
+    @keyframes bounce {0%,100%{transform:translateY(0);}50%{transform:translateY(-20px);}}
+    @keyframes spin {0%{transform:rotate(0);}100%{transform:rotate(360deg);}}
+    .anim-fadein{animation:fadein 0.9s;}
+    .anim-shake{animation:shake 0.7s;}
+    .anim-pulse{animation:pulse 1s infinite;}
+    .anim-bounce{animation:bounce 0.8s;}
+    .anim-spin{animation:spin 0.9s linear infinite;}
+    /* Responsive Preview */
+    .preview-modal-bg{position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:#000a;display:none;align-items:center;justify-content:center;}
+    .preview-modal{background:#fff;border-radius:14px;box-shadow:0 4px 32px #0005;max-width:90vw;max-height:80vh;padding:18px 26px;display:flex;flex-direction:column;align-items:center;}
+    .preview-modal h2{margin-top:0;}
+    .preview-canvas{background:#fafafd;border:2px dashed #aaa;border-radius:16px;padding:15px;min-width:220px;}
+    .preview-device-btn{padding:6px 13px;margin:2px;border-radius:7px;border:1px solid #ddd;background:#f4f4fa;cursor:pointer;}
+    .preview-device-btn.active{background:#4ecdc4;color:#fff;}
+    /* Dark/Light Mode */
+    body.dark{background:#23272c;}
+    body.dark .main-grid,body.dark .canvas-board,body.dark .sidepanel,body.dark .properties-panel,body.dark .preview-modal,body.dark header{background:#23272c;color:#fff;}
+    body.dark .canvas-board{border-color:#4ecdc4;}
+    body.dark .comp-btn{background:#222;color:#4ecdc4;border-color:#444;}
+    body.dark .toolbar,.body.dark .modal-bg{background:#222;}
+    /* ... weitere Styles für extra Features ... */
+    @media (max-width:990px){.main-grid{grid-template-columns:60px 1fr 160px;}.sidepanel{min-width:90px;font-size:0.93em;}}
+    @media (max-width:700px){.main-grid{grid-template-columns:44px 1fr;grid-template-rows:46px 1fr 135px;height:100svh;}.sidepanel{grid-row:3;grid-column:1/3;flex-direction:row;gap:7px;min-width:0;min-height:0;padding:6px 2px;width:100vw;border-left:none;border-top:2px solid #d0d0e0;height:120px;overflow-x:auto;overflow-y:hidden;}.workspace{grid-column:2;}.canvas-board{width:99%;height:99%;}.sidebar{width:42px;min-width:42px;}.sidebar-btn{width:40px;height:40px;font-size:1.1em;}.sidebar-btn span{font-size:0.8em;}.properties-panel{font-size:0.93em;padding:6px 4px 4px 4px;gap:5px;}}
+  </style>
+</head>
+<body>
+  <div class="main-grid">
+    <header>
+      <h1>Ultimate App Creator</h1>
+      <span style="font-size:1em;" id="project-title">Das All-in-One Creator-Studio</span>
+      <img id="user-avatar" src="" style="width:36px;height:36px;border-radius:50%;margin-left:20px;display:none;" title="Dein Profil">
+    </header>
+    <nav class="sidebar" aria-label="Navigation">
+      <button class="sidebar-btn active" id="btn-design" onclick="switchMode('design')" aria-label="Design">🎨<span>Design</span></button>
+      <button class="sidebar-btn" id="btn-code" onclick="switchMode('code')" aria-label="Code">💻<span>Code</span></button>
+      <button class="sidebar-btn" id="btn-preview" onclick="switchMode('preview')" aria-label="Preview">👀<span>Vorschau</span></button>
+      <button class="sidebar-btn" id="btn-gallery" onclick="switchMode('gallery')" aria-label="Gallery">🗂️<span>Galerie</span></button>
+      <button class="sidebar-btn" id="btn-settings" onclick="switchMode('settings')" aria-label="Settings">⚙️<span>Settings</span></button>
+      <button class="sidebar-btn" id="btn-help" onclick="switchMode('help')" aria-label="Help">❓<span>Hilfe</span></button>
+    </nav>
+    <main class="workspace">
+      <div class="toolbar" id="toolbar">
+        <button class="action-btn" onclick="newProject()">Neu</button>
+        <button class="action-btn" onclick="saveProject()">Speichern</button>
+        <button class="action-btn" onclick="importProject()">Import</button>
+        <button class="action-btn" onclick="exportProject()">Export</button>
+        <button class="action-btn" onclick="undoAction()">Undo</button>
+        <button class="action-btn" onclick="redoAction()">Redo</button>
+        <button class="action-btn" onclick="exportPWA()">PWA Export</button>
+        <button class="action-btn" onclick="openManifestModal()">Manifest</button>
+        <button class="action-btn" onclick="openQR()">QR-Code</button>
+        <button class="action-btn" onclick="toggleDarkMode()">Dark/Light</button>
+        <button class="action-btn" onclick="showAITips()">AI Tipp</button>
+        <button class="action-btn" onclick="openPreview()">Preview</button>
+        <select id="language-switcher" onchange="switchLanguage()" style="margin-left:8px;">
+          <option value="de">Deutsch</option>
+          <option value="en">English</option>
+        </select>
+        <input type="file" id="image-upload" accept="image/*" style="display:none" onchange="uploadImage(event)">
+        <button class="action-btn" onclick="document.getElementById('image-upload').click()">Bild hochladen</button>
+        <input type="file" id="sound-upload" accept="audio/*" style="display:none" onchange="uploadSound(event)">
+        <button class="action-btn" onclick="document.getElementById('sound-upload').click()">Sound hochladen</button>
+      </div>
+      <section class="canvas-area" id="canvas-section">
+        <div class="canvas-board" id="canvas-board" ondrop="dropComponent(event)" ondragover="allowDrop(event)">
+          <span class="drop-hint" id="drop-hint">Ziehe Komponenten hierher!<br>(+ Seiten, Animationen, Medien, Teams, Themes, ...)</span>
+        </div>
+        <div class="properties-panel invisible" id="props-panel">
+          <div class="prop-group"><label for="prop-type">Typ</label>
+            <input id="prop-type" type="text" readonly></div>
+          <div class="prop-group"><label for="prop-text">Text</label>
+            <input id="prop-text" type="text" placeholder="Text hier ändern"></div>
+          <div class="prop-group"><label for="prop-color">Farbe</label>
+            <input id="prop-color" type="color"></div>
+          <div class="prop-group"><label for="prop-size">Größe</label>
+            <select id="prop-size">
+              <option value="small">Klein</option>
+              <option value="medium">Mittel</option>
+              <option value="large">Groß</option>
+            </select></div>
+          <div class="prop-group"><label for="prop-anim">Animation</label>
+            <select id="prop-anim">
+              <option value="">Keine</option>
+              <option value="anim-fadein">Einblenden</option>
+              <option value="anim-shake">Wackeln</option>
+              <option value="anim-pulse">Pulsieren</option>
+              <option value="anim-bounce">Springen</option>
+              <option value="anim-spin">Drehen</option>
+            </select></div>
+          <button class="close-props" onclick="closeProps()">✖</button>
+        </div>
+        <!-- Vorschau Modal -->
+        <div class="preview-modal-bg" id="preview-bg">
+          <div class="preview-modal">
+            <div id="preview-device-switch">
+              <button class="preview-device-btn active" onclick="setPreviewDevice('desktop')">Desktop</button>
+              <button class="preview-device-btn" onclick="setPreviewDevice('tablet')">Tablet</button>
+              <button class="preview-device-btn" onclick="setPreviewDevice('mobile')">Handy</button>
+            </div>
+            <h2>App-Vorschau <button onclick="closePreview()" style="margin-left:18px" class="close-props">✖</button></h2>
+            <div class="preview-canvas" id="preview-canvas"></div>
+          </div>
+        </div>
+        <!-- Code Editor Modal -->
+        <div class="modal-bg" id="modal-code" style="display:none;">
+          <div class="modal-box">
+            <h2>Code-Editor (HTML/CSS/JS)</h2>
+            <div style="display:flex;gap:8px;margin-bottom:5px;">
+              <button class="editor-tab-btn active" onclick="switchCodeTab('html')" id="tab-html">HTML</button>
+              <button class="editor-tab-btn" onclick="switchCodeTab('css')" id="tab-css">CSS</button>
+              <button class="editor-tab-btn" onclick="switchCodeTab('js')" id="tab-js">JS</button>
+            </div>
+            <div style="height:200px;">
+              <div id="code-html" class="ace_editor" style="width:100%;height:100%;"></div>
+              <div id="code-css" class="ace_editor" style="width:100%;height:100%;display:none"></div>
+              <div id="code-js" class="ace_editor" style="width:100%;height:100%;display:none"></div>
+            </div>
+            <button class="action-btn" onclick="applyCode()">Anwenden</button>
+          </div>
+        </div>
+        <!-- Manifest Modal -->
+        <div class="modal-bg" id="modal-manifest" style="display:none;">
+          <div class="modal-box"><h2>App Manifest</h2>
+            <div class="prop-group"><label>Name</label><input id="mf-name"></div>
+            <div class="prop-group"><label>Short Name</label><input id="mf-short"></div>
+            <div class="prop-group"><label>Beschreibung</label><input id="mf-desc"></div>
+            <div class="prop-group"><label>Start URL</label><input id="mf-start"></div>
+            <div class="prop-group"><label>Theme Color</label><input id="mf-theme" type="color"></div>
+            <div class="prop-group"><label>Background Color</label><input id="mf-bg" type="color"></div>
+            <div class="prop-group"><label>Icon-URL</label><input id="mf-icon"></div>
+            <button class="action-btn" onclick="saveManifest()">Speichern</button>
+          </div>
+        </div>
+        <!-- QR Modal -->
+        <div class="modal-bg" id="modal-qr" style="display:none;">
+          <div class="modal-box"><h2>Teile/Installiere deine App</h2>
+            <canvas id="qr-canvas" width="180" height="180" style="margin:10px auto;display:block;"></canvas>
+            <input id="qr-url" value="https://example.com/deine-app" style="width:90%;margin-bottom:10px;">
+            <button class="action-btn" onclick="updateQR()">QR aktualisieren</button>
+            <button class="action-btn" onclick="closeQR()">Schließen</button>
+          </div>
+        </div>
+        <!-- Galerie Modal -->
+        <div class="modal-bg" id="modal-gallery" style="display:none;">
+          <div class="modal-box"><h2>Projekt-Galerie</h2>
+            <div id="gallery-list"></div>
+            <button class="action-btn" onclick="closeGallery()">Schließen</button>
+          </div>
+        </div>
+        <!-- Import Modal -->
+        <div class="modal-bg" id="modal-import" style="display:none;">
+          <div class="modal-box"><h2>Projekt importieren</h2>
+            <input type="file" id="import-file" accept=".json,.zip" onchange="loadImportFile(event)">
+            <button class="action-btn" onclick="closeImport()">Abbrechen</button>
+          </div>
+        </div>
+        <!-- Hilfe Modal -->
+        <div class="modal-bg" id="modal-help" style="display:none;">
+          <div class="modal-box"><h2>Hilfe & Guided Tour</h2>
+            <ul>
+              <li>Ziehe Komponenten auf die Leinwand</li>
+              <li>Bearbeite Eigenschaften, Animationen, Seiten</li>
+              <li>Füge Assets, Snippets, Themes hinzu</li>
+              <li>Exportiere als PWA, HTML, ZIP oder teile per QR</li>
+              <li>Teste alles im Preview-Modus</li>
+            </ul>
+            <button class="action-btn" onclick="closeHelp()">Schließen</button>
+          </div>
+        </div>
+        <!-- AI Tipps Modal -->
+        <div class="modal-bg" id="modal-ai" style="display:none;">
+          <div class="modal-box"><h2>AI-Vorschläge</h2>
+            <input type="text" id="ai-prompt" placeholder="Was möchtest du bauen?" style="width:94%;"/>
+            <button class="action-btn" onclick="aiSuggest()">AI Tipp holen</button>
+            <div id="ai-result" style="margin-top:12px;color:#444;"></div>
+            <button class="action-btn" onclick="closeAI()">Schließen</button>
+          </div>
+        </div>
+      </section>
+    </main>
+    <aside class="sidepanel" id="sidepanel">
+      <h2>Komponenten</h2>
+      <div id="comp-list"></div>
+      <h3>Assets</h3>
+      <div id="assets-list"></div>
+      <h3>Sounds</h3>
+      <div id="sounds-list"></div>
+      <h3>Eigene Snippets</h3>
+      <div id="snippets-list"></div>
+      <h3>Templates</h3>
+      <div id="templates-list"></div>
+    </aside>
+  </div>
+  <script>
+    // --- State ---
+    let pages = [{name:"Seite 1", comps:[]}];
+    let curPage = 0, compId = 1;
+    let selectedComp = null, dragEl = null, dragOffset = {x:0,y:0};
+    let history = [], redoHist = [];
+    let manifest = {name:"Meine App",short_name:"MyApp",description:"",start_url:"/",theme_color:"#4ecdc4",background_color:"#fafbff",icon:""};
+    let assets=[], sounds=[], snippets=[], templates=[], gallery=[], language="de";
+    let aceEditors = {};
+    let dark=false;
+    // Komponenten-Katalog
+    const defaultComps = [
+      {icon:"🔘",type:"Button",text:"Klick mich!",color:"#4ecdc4",size:"medium"},
+      {icon:"📝",type:"Text",text:"Text hier",color:"#667eea",size:"medium"},
+      {icon:"🖼️",type:"Bild",text:"Bild",color:"#ff6b6b",size:"medium"},
+      {icon:"⌨️",type:"Input",text:"Eingabe",color:"#ffa700",size:"medium"},
+      {icon:"🟦",type:"Box",text:"Box",color:"#b388ff",size:"medium"},
+      {icon:"📊",type:"Chart",text:"Chart",color:"#44d19a",size:"large"},
+      {icon:"🎵",type:"Sound",text:"Ton",color:"#13b9e6",size:"medium"}
+    ];
+    // Initialisieren
+    function updateCompList() {
+      const cl=document.getElementById("comp-list"); cl.innerHTML="";
+      defaultComps.forEach(c=>{
+        let btn=document.createElement("div");
+        btn.className="comp-btn";
+        btn.setAttribute("draggable","true");
+        btn.setAttribute("data-type",c.type);
+        btn.setAttribute("data-text",c.text);
+        btn.setAttribute("data-color",c.color);
+        btn.setAttribute("data-size",c.size);
+        btn.innerHTML = `${c.icon}<span>${c.type}</span>`;
+        btn.ondragstart=dragComponent;
+        cl.appendChild(btn);
+      });
+      // Assets
+      assets.forEach((a,i)=>{
+        let btn=document.createElement("div");
+        btn.className="comp-btn";
+        btn.setAttribute("draggable","true");
+        btn.setAttribute("data-type","Bild");
+        btn.setAttribute("data-text","Bild");
+        btn.setAttribute("data-color","#ddd");
+        btn.setAttribute("data-size","medium");
+        btn.setAttribute("data-img",a);
+        btn.innerHTML = `<img src="${a}" alt="Bild" style="width:34px;height:34px;border-radius:6px;display:block;margin:0 auto 3px auto;"><span>Bild</span>`;
+        btn.ondragstart = dragComponent;
+        cl.appendChild(btn);
+      });
+    }
+    // Asset-Upload
+    function uploadImage(e) {
+      let file = e.target.files[0];
+      if(!file) return;
+      let reader = new FileReader();
+      reader.onload = function(evt){
+        let url = evt.target.result;
+        assets.push(url); updateCompList();
+        alert("Bild hochgeladen!");
+      };
+      reader.readAsDataURL(file);
+    }
+    function uploadSound(e) {
+      let file = e.target.files[0];
+      if(!file) return;
+      let reader = new FileReader();
+      reader.onload = function(evt){
+        let url = evt.target.result;
+        sounds.push(url); updateSoundsList();
+        alert("Sound hochgeladen!");
+      };
+      reader.readAsDataURL(file);
+    }
+    function updateSoundsList(){
+      const s=document.getElementById("sounds-list"); s.innerHTML="";
+      sounds.forEach((a,i)=>{
+        let btn=document.createElement("div");
+        btn.className="comp-btn";
+        btn.setAttribute("draggable","true");
+        btn.setAttribute("data-type","Sound");
+        btn.setAttribute("data-text","Ton");
+        btn.setAttribute("data-color","#13b9e6");
+        btn.setAttribute("data-size","medium");
+        btn.setAttribute("data-sound",a);
+        btn.innerHTML = `<span>🎵</span><span>Ton ${i+1}</span>`;
+        btn.ondragstart = dragComponent;
+        btn.onclick=()=>{let audio=new Audio(a);audio.play();}
+        s.appendChild(btn);
+      });
+    }
+    function updateAssetsList(){ // Bilder
+      const al=document.getElementById("assets-list"); al.innerHTML="";
+      assets.forEach((a,i)=>{
+        let img=document.createElement("img");
+        img.src=a; img.style.width="40px";img.style.height="32px";img.style.margin="2px";img.style.borderRadius="5px";
+        img.title="Klick zum Einfügen";
+        img.onclick=()=>{addComponentToCanvas({type:"Bild",text:"Bild",color:"#ddd",size:"medium",img:a},null,true)};
+        al.appendChild(img);
+      });
+    }
+    // Drag & Drop Komponenten
+    function allowDrop(ev){ev.preventDefault();}
+    function dragComponent(ev){
+      const btn = ev.target;
+      ev.dataTransfer.setData("text/plain", JSON.stringify({
+        type: btn.getAttribute('data-type'),
+        text: btn.getAttribute('data-text'),
+        color: btn.getAttribute('data-color'),
+        size: btn.getAttribute('data-size'),
+        anim: "",
+        img: btn.getAttribute('data-img')||"",
+        sound: btn.getAttribute('data-sound')||""
+      }));
+    }
+    function dropComponent(ev){
+      ev.preventDefault();
+      const data = JSON.parse(ev.dataTransfer.getData("text/plain"));
+      addComponentToCanvas(data, ev, true);
+    }
+    function addComponentToCanvas(data, ev, animate=true) {
+      document.getElementById('drop-hint').style.display = "none";
+      const board = document.getElementById('canvas-board');
+      const el = document.createElement('div');
+      el.className = 'canvas-comp'+(animate?' anim-fadein':'')+(data.anim?" "+data.anim:"");
+      el.style.position = 'absolute';
+      el.style.left = ev && ev.offsetX!==undefined ? ev.offsetX + "px" : (30 + (compId*18)%200) + "px";
+      el.style.top = ev && ev.offsetY!==undefined ? ev.offsetY + "px" : (38 + (compId*21)%100) + "px";
+      el.style.background = data.color;
+      el.id = "comp-"+(compId++);
+      el.setAttribute('data-type', data.type);
+      el.setAttribute('data-size', data.size);
+      el.setAttribute('data-color', data.color);
+      el.setAttribute('data-text', data.text);
+      el.setAttribute('data-anim', data.anim||"");
+      if(data.img) el.setAttribute('data-img', data.img);
+      if(data.sound) el.setAttribute('data-sound', data.sound);
+      el.tabIndex = 0;
+      el.onclick = (e) => {e.stopPropagation(); selectComponent(el)};
+      el.onkeydown = (e) => {if(e.key==="Enter"){selectComponent(el)}};
+      el.style.padding = data.size==="large"?"22px 40px":data.size==="small"?"7px 13px":"12px 20px";
+      el.style.borderRadius = "13px";
+      el.style.fontSize = data.size==="large"?"1.5em":data.size==="small"?"0.95em":"1.13em";
+      el.style.color = "#fff";
+      if(data.type==="Bild"&&data.img){el.innerHTML=`<img src="${data.img}" alt="Bild">`;}
+      else if(data.type==="Sound"&&data.sound){
+        el.innerHTML=`<span>🎵</span>`;
+        el.onclick=()=>{let audio=new Audio(data.sound);audio.play();};
+      }
+      else el.innerText = data.text;
+      let delBtn = document.createElement('button');
+      delBtn.className="delete-btn"; delBtn.innerHTML="✖";
+      delBtn.onclick = (e)=>{e.stopPropagation(); deleteComponent(el)};
+      el.appendChild(delBtn);
+      let dupBtn = document.createElement('button');
+      dupBtn.className="duplicate-btn";
+      dupBtn.innerHTML="⧉";
+      dupBtn.onclick = (e)=>{e.stopPropagation(); duplicateComponent(el)};
+      el.appendChild(dupBtn);
+      el.onmousedown = startDrag;
+      el.ontouchstart = startDragTouch;
+      board.appendChild(el);
+      if(animate) setTimeout(()=>el.classList.remove('anim-fadein'),900);
+    }
+    // Draggen auf Canvas (mit Maus)
+    function startDrag(e) {
+      if(e.button!==0) return;
+      dragEl = e.currentTarget;
+      let rect = dragEl.getBoundingClientRect();
+      dragOffset.x = e.clientX - rect.left;
+      dragOffset.y = e.clientY - rect.top;
+      document.onmousemove = onDrag;
+      document.onmouseup = stopDrag;
+    }
+    function onDrag(e) {
+      if(!dragEl) return;
+      let board = document.getElementById("canvas-board").getBoundingClientRect();
+      dragEl.style.left = (e.clientX - board.left - dragOffset.x) + "px";
+      dragEl.style.top = (e.clientY - board.top - dragOffset.y) + "px";
+    }
+    function stopDrag(e) {
+      dragEl = null;
+      document.onmousemove = null;
+      document.onmouseup = null;
+      saveCurrentPage();
+    }
+    // Draggen auf Canvas (Touch)
+    function startDragTouch(e) {
+      dragEl = e.currentTarget;
+      let touch = e.touches[0];
+      let rect = dragEl.getBoundingClientRect();
+      dragOffset.x = touch.clientX - rect.left;
+      dragOffset.y = touch.clientY - rect.top;
+      document.ontouchmove = onDragTouch;
+      document.ontouchend = stopDragTouch;
+    }
+    function onDragTouch(e) {
+      if(!dragEl) return;
+      let touch = e.touches[0];
+      let board = document.getElementById("canvas-board").getBoundingClientRect();
+      dragEl.style.left = (touch.clientX - board.left - dragOffset.x) + "px";
+      dragEl.style.top = (touch.clientY - board.top - dragOffset.y) + "px";
+    }
+    function stopDragTouch(e) {
+      dragEl = null;
+      document.ontouchmove = null;
+      document.ontouchend = null;
+      saveCurrentPage();
+    }
+    // Komponente auswählen
+    function selectComponent(el) {
+      document.querySelectorAll('.canvas-comp.selected').forEach(e=>e.classList.remove('selected'));
+      selectedComp = el;
+      el.classList.add('selected');
+      document.getElementById('props-panel').classList.remove('invisible');
+      document.getElementById('prop-type').value = el.getAttribute('data-type');
+      document.getElementById('prop-text').value = el.getAttribute('data-text');
+      document.getElementById('prop-color').value = el.getAttribute('data-color');
+      document.getElementById('prop-size').value = el.getAttribute('data-size');
+      document.getElementById('prop-anim').value = el.getAttribute('data-anim')||"";
+    }
+    // Eigenschaften bearbeiten
+    document.getElementById('prop-text').addEventListener('input', function() {
+      if(selectedComp) {
+        if(selectedComp.getAttribute('data-type')==="Bild" && selectedComp.getAttribute('data-img')){}
+        else {
+          selectedComp.innerText = this.value;
+          selectedComp.setAttribute('data-text', this.value);
+          selectedComp.appendChild(selectedComp.querySelector('.delete-btn'));
+          selectedComp.appendChild(selectedComp.querySelector('.duplicate-btn'));
+        }
+      }
+    });
+    document.getElementById('prop-color').addEventListener('input', function() {
+      if(selectedComp) {selectedComp.style.background = this.value;selectedComp.setAttribute('data-color', this.value);}
+    });
+    document.getElementById('prop-size').addEventListener('change', function() {
+      if(selectedComp) {
+        let sz = this.value;
+        selectedComp.setAttribute('data-size', sz);
+        selectedComp.style.padding = sz==="large"?"22px 40px":sz==="small"?"7px 13px":"12px 20px";
+        selectedComp.style.fontSize = sz==="large"?"1.5em":sz==="small"?"0.95em":"1.13em";
+      }
+    });
+    document.getElementById('prop-anim').addEventListener('change', function() {
+      if(selectedComp) {
+        let val = this.value;
+        selectedComp.setAttribute('data-anim', val);
+        selectedComp.className = "canvas-comp"+(val?" "+val:"");
+      }
+    });
+    function closeProps(){document.getElementById('props-panel').classList.add('invisible'); if(selectedComp) selectedComp.classList.remove('selected'); selectedComp=null;}
+    function deleteComponent(el){el.remove(); saveCurrentPage(); closeProps();}
+    function duplicateComponent(el){
+      let data = {
+        type: el.getAttribute('data-type'),
+        text: el.getAttribute('data-text'),
+        color: el.getAttribute('data-color'),
+        size: el.getAttribute('data-size'),
+        anim: el.getAttribute('data-anim')||"",
+        left: (parseInt(el.style.left||'40')+28)+"px",
+        top: (parseInt(el.style.top||'30')+16)+"px",
+        img: el.getAttribute('data-img')||""
+      };
+      addComponentToCanvas(data, null, true); saveCurrentPage();
+    }
+    // Undo/Redo
+    function saveCurrentPage() {
+      let comps = [];
+      document.querySelectorAll('.canvas-comp').forEach(el=>{
+        comps.push({
+          type: el.getAttribute('data-type'),
+          text: el.getAttribute('data-text'),
+          color: el.getAttribute('data-color'),
+          size: el.getAttribute('data-size'),
+          anim: el.getAttribute('data-anim')||"",
+          left: el.style.left,
+          top: el.style.top,
+          img: el.getAttribute('data-img')||"",
+          sound: el.getAttribute('data-sound')||""
+        });
+      });
+      pages[curPage].comps = comps;
+    }
+    function saveHistory() {
+      let snap = JSON.stringify(pages);
+      if(history[history.length-1]!==snap) {
+        history.push(snap);
+        if(history.length>20) history.shift();
+        redoHist = [];
+      }
+    }
+    function undoAction(){if(history.length>1){ redoHist.push(history.pop()); pages=JSON.parse(history[history.length-1]); renderPage();}}
+    function redoAction(){if(redoHist.length>0){ let st=redoHist.pop(); history.push(st); pages=JSON.parse(st); renderPage();}}
+    // Toolbar Aktionen
+    function newProject(){if(confirm("Alles löschen?")){ pages=[{name:"Seite 1",comps:[]}]; curPage=0; history=[]; redoHist=[]; renderPage(); saveHistory(); closeProps();}}
+    function saveProject(){gallery.push(JSON.parse(JSON.stringify(pages)));alert("Projekt in Galerie gespeichert!");updateGallery();}
+    function importProject(){document.getElementById('modal-import').style.display='flex';}
+    function exportProject() {
+      saveCurrentPage();
+      let exportData = {pages,manifest,assets,sounds,snippets,templates};
+      let blob = new Blob([JSON.stringify(exportData,null,2)],{type:"application/json"});
+      let a = document.createElement("a");
+      a.href=URL.createObjectURL(blob);
+      a.download="mein-app-projekt.json";
+      a.click();
+    }
+    function exportPWA(){alert("Um als PWA zu nutzen: HTML & Manifest exportieren und online hosten!");}
+    // Manifest-Editor
+    function openManifestModal(){
+      document.getElementById("mf-name").value=manifest.name||"";
+      document.getElementById("mf-short").value=manifest.short_name||"";
+      document.getElementById("mf-desc").value=manifest.description||"";
+      document.getElementById("mf-start").value=manifest.start_url||"/";
+      document.getElementById("mf-theme").value=manifest.theme_color||"#4ecdc4";
+      document.getElementById("mf-bg").value=manifest.background_color||"#fafbff";
+      document.getElementById("mf-icon").value=manifest.icon||"";
+      document.getElementById('modal-manifest').style.display='flex';
+    }
+    function saveManifest(){
+      manifest.name=document.getElementById("mf-name").value;
+      manifest.short_name=document.getElementById("mf-short").value;
+      manifest.description=document.getElementById("mf-desc").value;
+      manifest.start_url=document.getElementById("mf-start").value;
+      manifest.theme_color=document.getElementById("mf-theme").value;
+      manifest.background_color=document.getElementById("mf-bg").value;
+      manifest.icon=document.getElementById("mf-icon").value;
+      closeModal('modal-manifest');
+      alert("Manifest gespeichert!");
+    }
+    // Galerie
+    function updateGallery(){
+      const g=document.getElementById("gallery-list"); g.innerHTML="";
+      gallery.forEach((p,i)=>{
+        let btn=document.createElement("button");
+        btn.className="action-btn";
+        btn.innerText="Projekt "+(i+1);
+        btn.onclick=()=>{pages=JSON.parse(JSON.stringify(gallery[i]));renderPage();};
+        g.appendChild(btn);
+      });
+    }
+    function closeGallery(){document.getElementById('modal-gallery').style.display='none';}
+    // Import
+    function loadImportFile(e) {
+      let file = e.target.files[0];
+      if(!file) return;
+      let reader = new FileReader();
+      reader.onload = function(evt){
+        try{
+          let data = JSON.parse(evt.target.result);
+          if(data.pages){ pages = data.pages; curPage=0; }
+          if(data.manifest) manifest=data.manifest;
+          if(data.assets) assets=data.assets;
+          if(data.sounds) sounds=data.sounds;
+          renderPage(); updateCompList(); updateAssetsList(); updateSoundsList(); closeImport(); saveHistory();
+        }catch(ex){alert("Ungültige Datei!");}
+      };
+      reader.readAsText(file);
+    }
+    function closeImport(){document.getElementById('modal-import').style.display='none';}
+    // Vorschau
+    function openPreview() {
+      saveCurrentPage();
+      let prev = document.getElementById('preview-canvas');
+      prev.innerHTML = `<h3 style="margin-top:0;">${pages[curPage].name}</h3>`;
+      pages[curPage].comps.forEach(c=>{
+        if(c.type==="Bild"&&c.img)
+          prev.innerHTML+=`<img src="${c.img}" alt="Bild" style="display:inline-block;margin:8px 6px;width:80px;height:60px;border-radius:10px;">`;
+        else if(c.type==="Sound"&&c.sound)
+          prev.innerHTML+=`<button onclick="(function(){let a=new Audio('${c.sound}');a.play();})()">Ton</button>`;
+        else
+          prev.innerHTML+=`<div style="display:inline-block;margin:8px 6px;padding:${c.size=="large"?"18px 35px":c.size=="small"?"6px 10px":"11px 19px"};background:${c.color};color:#fff;font-size:${c.size=="large"?"1.3em":c.size=="small"?"0.9em":"1em"};border-radius:10px;animation:${c.anim?"fadein 0.9s":""};">${c.text}</div>`;
+      });
+      document.getElementById('preview-bg').style.display = 'flex';
+    }
+    function closePreview() { document.getElementById('preview-bg').style.display = 'none'; }
+    // Vorschau Devices
+    function setPreviewDevice(device){
+      let pc=document.getElementById('preview-canvas');
+      let dBtns=document.querySelectorAll('.preview-device-btn');
+      dBtns.forEach(b=>b.classList.remove('active'));
+      if(device==='desktop'){pc.style.width="auto";dBtns[0].classList.add('active');}
+      if(device==='tablet'){pc.style.width="500px";dBtns[1].classList.add('active');}
+      if(device==='mobile'){pc.style.width="320px";dBtns[2].classList.add('active');}
+    }
+    // Code-Editor
+    function switchMode(mode){
+      // Alle Panels schließen
+      document.getElementById("canvas-section").style.display=mode==="design"?"flex":"none";
+      document.getElementById("modal-code").style.display=mode==="code"?"flex":"none";
+      document.getElementById("preview-bg").style.display=mode==="preview"?"flex":"none";
+      document.getElementById("modal-gallery").style.display=mode==="gallery"?"flex":"none";
+      document.getElementById("modal-help").style.display=mode==="help"?"flex":"none";
+      document.getElementById("modal-manifest").style.display=mode==="settings"?"flex":"none";
+      document.querySelectorAll(".sidebar-btn").forEach(b=>b.classList.remove("active"));
+      document.getElementById("btn-"+mode).classList.add("active");
+      if(mode==="code"&&!aceEditors.html) setTimeout(initAceEditors,100);
+      if(mode==="gallery") updateGallery();
+      if(mode==="design") renderPage();
+      if(mode==="preview") openPreview();
+      if(mode==="settings") openManifestModal();
+    }
+    function initAceEditors() {
+      aceEditors.html = ace.edit("code-html",{mode:"ace/mode/html", theme:"ace/theme/xcode"});
+      aceEditors.css = ace.edit("code-css",{mode:"ace/mode/css", theme:"ace/theme/xcode"});
+      aceEditors.js = ace.edit("code-js",{mode:"ace/mode/javascript", theme:"ace/theme/xcode"});
+      aceEditors.html.setValue("<div id='app'>\n  <!-- Deine App hier... -->\n</div>",1);
+      aceEditors.css.setValue("body { font-family: Arial; background: #fafbff; }",1);
+      aceEditors.js.setValue("// Dein JavaScript...",1);
+    }
+    function switchCodeTab(tab) {
+      ["html","css","js"].forEach(t=>{
+        document.getElementById("tab-"+t).classList.remove("active");
+        document.getElementById("code-"+t).style.display = "none";
+      });
+      document.getElementById("tab-"+tab).classList.add("active");
+      document.getElementById("code-"+tab).style.display = "block";
+    }
+    function applyCode(){alert("Code übernommen! (Demo: Vorschau nutzt weiterhin den Visuellen Editor.)");switchMode("design");}
+    // QR-Code
+    let qr=null;
+    function openQR(){
+      document.getElementById("modal-qr").style.display="flex";
+      updateQR();
+    }
+    function updateQR(){
+      let url=document.getElementById("qr-url").value||"https://example.com";
+      if(!qr) qr=new QRious({element:document.getElementById('qr-canvas'),size:180,value:url});
+      else qr.set({value:url});
+    }
+    function closeQR(){document.getElementById("modal-qr").style.display="none";}
+    // Dark/Light Mode
+    function toggleDarkMode(){
+      dark=!dark;
+      document.body.classList.toggle("dark",dark);
+    }
+    // Hilfe & AI
+    function showAITips(){document.getElementById("modal-ai").style.display="flex";}
+    function closeAI(){document.getElementById("modal-ai").style.display="none";}
+    function aiSuggest(){
+      let prompt=document.getElementById("ai-prompt").value;
+      let out=document.getElementById("ai-result");
+      if(prompt.toLowerCase().includes("todo")) out.textContent="Tipp: Füge eine Liste mit Checkboxen hinzu!";
+      else if(prompt.toLowerCase().includes("chat")) out.textContent="Tipp: Nutze Text, Input und Senden-Button!";
+      else out.textContent="Tipp: Kombiniere Komponenten kreativ – du bestimmst!";
+    }
+    function closeHelp(){document.getElementById("modal-help").style.display="none";}
+    // Sprache
+    function switchLanguage(){
+      language=document.getElementById("language-switcher").value;
+      alert("Sprache umgestellt auf "+(language==="de"?"Deutsch":"English")+". (Demo)");
+    }
+    // Galerie/Auto-Save
+    setInterval(()=>{saveCurrentPage();saveHistory();},900);
+    // Beim Laden
+    updateCompList(); updateAssetsList(); updateSoundsList(); renderPage(); saveHistory();
+  </script>
+</body>
+</html>
